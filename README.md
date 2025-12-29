@@ -97,7 +97,7 @@ dotnet run
 
 The application will be available at:
 - HTTPS: `https://localhost:5001`
-- HTTP: `http://localhost:5000`
+- HTTP: `http://localhost:5022`
 
 ## ⚙️ Configuration
 
@@ -207,14 +207,6 @@ dotnet test
   - ProductService tests
 - **Page Model Tests**: Razor Page logic testing
 
-## 📊 Performance Testing
-
-The project includes JMeter test plans for performance testing:
-
-```bash
-jmeter -n -t EStore_Perf_Test.jmx -l results.jtl
-```
-
 ## 🏗️ Architecture
 
 ### Design Patterns
@@ -281,6 +273,3 @@ The application supports development-specific settings in `appsettings.Developme
 For questions or issues, please open an issue in the repository.
 
 ---
-
-**Built with ❤️ using ASP.NET Core**
-
