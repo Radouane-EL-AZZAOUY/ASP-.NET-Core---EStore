@@ -333,3 +333,17 @@ D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Caching.StackE
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Pipelines.Sockets.Unofficial.dll
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\StackExchange.Redis.dll
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\System.IO.Hashing.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Configuration.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Abstractions.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Binder.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.DependencyInjection.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Http.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Logging.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Logging.Abstractions.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Options.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\System.Diagnostics.DiagnosticSource.dll

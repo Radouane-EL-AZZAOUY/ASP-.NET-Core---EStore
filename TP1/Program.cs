@@ -58,6 +58,23 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CartService>();
 
+// Register RAG Service for product-based chatbot
+builder.Services.AddScoped<IRAGService, RAGService>();
+
+// Register Ollama Chat Service with RAG support
+builder.Services.AddHttpClient<OllamaService>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+builder.Services.AddScoped<IOllamaService>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient(nameof(OllamaService));
+    var logger = sp.GetRequiredService<ILogger<OllamaService>>();
+    var ragService = sp.GetRequiredService<IRAGService>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    
+    return new OllamaService(httpClient, logger, ragService, configuration);
+});
+
 var app = builder.Build();  
 
 // Seed database

@@ -1,0 +1,228 @@
+@page
+@model TP1.Pages.Chat.IndexModel
+@{
+    ViewData["Title"] = "AI Shopping Assistant";
+}
+
+<!-- Hidden form for anti-forgery token -->
+<form id="antiForgeryForm" style="display: none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-robot"></i> AI Shopping Assistant (RAG-Powered)
+                        @if (!Model.IsOllamaAvailable)
+                        {
+                            <span class="badge bg-warning text-dark float-end">Offline</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success float-end">Online</span>
+                        }
+                    </h4>
+                    <small>Ask me about products, prices, or recommendations!</small>
+                </div>
+                <div class="card-body" style="height: 600px; overflow-y: auto;" id="chatMessages">
+                    @if (!Model.IsOllamaAvailable)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Ollama is not running!</strong> 
+                            Please make sure Ollama is installed and running on your PC.
+                            <br><small>Run: <code>ollama serve</code></small>
+                        </div>
+                    }
+                    <div class="text-center text-muted py-5" id="welcomeMessage">
+                        <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Start a conversation with your AI shopping assistant</p>
+                        <div class="mt-3">
+                            <small class="text-muted">Try asking:</small>
+                            <div class="d-flex flex-wrap gap-2 justify-content-center mt-2">
+                                <button class="btn btn-sm btn-outline-secondary suggestion-btn">"Show me laptops"</button>
+                                <button class="btn btn-sm btn-outline-secondary suggestion-btn">"What's on sale?"</button>
+                                <button class="btn btn-sm btn-outline-secondary suggestion-btn">"Recommend a phone"</button>
+                                <button class="btn btn-sm btn-outline-secondary suggestion-btn">"Cheapest products?"</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form id="chatForm" class="d-flex gap-2">
+                        <input type="text" 
+                               id="messageInput" 
+                               class="form-control" 
+                               placeholder="Ask about products, prices, or get recommendations..."
+                               @(!Model.IsOllamaAvailable ? "disabled" : "")>
+                        <button type="submit" 
+                                class="btn btn-primary px-4"
+                                @(!Model.IsOllamaAvailable ? "disabled" : "")
+                                id="sendButton">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let conversationHistory = '';
+
+        // Handle suggestion button clicks
+        document.querySelectorAll('.suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('messageInput').value = this.textContent.replace(/['"]/g, '');
+                document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+            });
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // Remove welcome message
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) welcomeMsg.remove();
+            
+            // Disable input while processing
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            messageInput.value = '';
+            
+            // Show loading indicator
+            const loadingId = addMessage('Thinking...', 'assistant', true);
+            
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add anti-forgery token if available
+                if (token) {
+                    headers['RequestVerificationToken'] = token.value;
+                }
+                
+                const response = await fetch('/Chat?handler=SendMessage', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        message: message,
+                        conversationHistory: conversationHistory
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                document.getElementById(loadingId).remove();
+                
+                if (data.success) {
+                    // Add AI response
+                    addMessage(data.response, 'assistant');
+                    
+                    // Show product cards if available
+                    if (data.relevantProducts && data.relevantProducts.length > 0) {
+                        addProductCards(data.relevantProducts);
+                    }
+                    
+                    // Update conversation history
+                    conversationHistory += `\nUser: ${message}\nAssistant: ${data.response}`;
+                } else {
+                    addMessage('Error: ' + (data.error || 'Unknown error'), 'assistant error');
+                }
+            } catch (error) {
+                document.getElementById(loadingId)?.remove();
+                addMessage('Failed to get response. Please try again.', 'assistant error');
+                console.error('Chat error:', error);
+            } finally {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<i class="bi bi-send"></i>';
+                messageInput.focus();
+            }
+        });
+        
+        function addMessage(text, sender, isLoading = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            
+            const messageId = 'msg-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = messageId;
+            messageDiv.className = `mb-3 ${sender === 'user' ? 'text-end' : ''}`;
+            
+            const badge = sender === 'user' ? 'bg-primary' : (sender.includes('error') ? 'bg-danger' : 'bg-secondary');
+            const icon = sender === 'user' ? 'person-fill' : 'robot';
+            
+            messageDiv.innerHTML = `
+                <div class="d-inline-block">
+                    <small class="text-muted">
+                        <i class="bi bi-${icon}"></i> 
+                        ${sender === 'user' ? 'You' : 'Assistant'}
+                    </small>
+                    <div class="badge ${badge} text-wrap text-start p-3" style="max-width: 600px; white-space: pre-wrap;">
+                        ${isLoading ? '<span class="spinner-border spinner-border-sm me-2"></span>' : ''}${escapeHtml(text)}
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return messageId;
+        }
+        
+        function addProductCards(products) {
+            const chatMessages = document.getElementById('chatMessages');
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'mb-3';
+            
+            let cardsHtml = '<div class="row g-2">';
+            products.forEach(product => {
+                cardsHtml += `
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            ${product.mainImagePath ? `<img src="${product.mainImagePath}" class="card-img-top" alt="${product.title}" style="height: 150px; object-fit: cover;">` : ''}
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1">${escapeHtml(product.title)}</h6>
+                                <p class="card-text small text-muted mb-2">${escapeHtml(product.description?.substring(0, 60) || '')}...</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-success">$${product.price.toFixed(2)}</span>
+                                    <span class="badge ${product.inStock ? 'bg-primary' : 'bg-secondary'}">${product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                                </div>
+                                <a href="/Products/Details?id=${product.id}" class="btn btn-sm btn-outline-primary w-100 mt-2">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+            
+            cardsContainer.innerHTML = cardsHtml;
+            chatMessages.appendChild(cardsContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}
+
