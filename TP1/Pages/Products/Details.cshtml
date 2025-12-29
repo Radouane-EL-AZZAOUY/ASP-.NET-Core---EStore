@@ -181,39 +181,24 @@
             background-color: #F7CA00;
         }
 
-        .btn-buy-now {
-            flex: 1;
-            background-color: #FFA41C;
-            border: 1px solid #FF8F00;
+        .btn-back {
+            background-color: #fff;
+            border: 1px solid #D5D9D9;
             color: #0F1111;
             padding: 12px 24px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn-buy-now:hover {
-            background-color: #FA8900;
-        }
-
-        .admin-actions {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e7e7e7;
-        }
-
-        .admin-actions a {
-            color: #007185;
+            transition: all 0.2s;
             text-decoration: none;
-            margin-right: 16px;
-            font-size: 14px;
+            display: inline-block;
+            margin-top: 20px;
         }
 
-        .admin-actions a:hover {
-            color: #C7511F;
-            text-decoration: underline;
+        .btn-back:hover {
+            background-color: #F7FAFA;
+            border-color: #000;
         }
 
         @@media (max-width: 768px) {
@@ -235,6 +220,14 @@
         <a asp-page="/Products/Index">Products</a> › 
         <span>@Model.Product.Title</span>
     </div>
+
+    @if (TempData["CartMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["CartMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <div class="product-detail-grid">
         <!-- Product Image Section -->
@@ -310,12 +303,12 @@
             @if (Model.Product.Quantity > 0)
             {
                 <div class="action-buttons">
-                    <button class="btn-add-cart" onclick="addToCart(@Model.Product.Id)">
-                        🛒 Add to Cart
-                    </button>
-                    <button class="btn-buy-now" onclick="buyNow(@Model.Product.Id)">
-                        ⚡ Buy Now
-                    </button>
+                    <form method="post" asp-page-handler="AddToCart">
+                        <input type="hidden" name="productId" value="@Model.Product.Id" />
+                        <button type="submit" class="btn-add-cart">
+                            🛒 Add to Cart
+                        </button>
+                    </form>
                 </div>
             }
             else
@@ -325,25 +318,8 @@
                 </div>
             }
 
-            <div class="admin-actions">
-                <a asp-page="./Edit" asp-route-id="@Model.Product.Id">✏️ Edit Product</a>
-                <a asp-page="./Delete" asp-route-id="@Model.Product.Id">🗑️ Delete Product</a>
-                <a asp-page="./Index">← Back to Products</a>
-            </div>
+            <a asp-page="./Index" class="btn-back">← Back to Products</a>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function addToCart(productId) {
-            // Add to cart functionality
-            alert('Product added to cart! (Feature to be implemented)');
-        }
-
-        function buyNow(productId) {
-            // Buy now functionality
-            alert('Proceeding to checkout... (Feature to be implemented)');
-        }
-    </script>
-}

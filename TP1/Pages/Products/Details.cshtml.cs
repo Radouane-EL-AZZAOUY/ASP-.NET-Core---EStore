@@ -7,16 +7,21 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TP1.DataLayer;
 using TP1.Models;
+using TP1.Services;
 
 namespace TP1.Pages.Products
 {
     public class DetailsModel : PageModel
     {
         private readonly TP1.DataLayer.DBContext _context;
+        private readonly IProductService _productService;
+        private readonly CartService _cartService;
 
-        public DetailsModel(TP1.DataLayer.DBContext context)
+        public DetailsModel(TP1.DataLayer.DBContext context, IProductService productService, CartService cartService)
         {
             _context = context;
+            _productService = productService;
+            _cartService = cartService;
         }
 
         public Product Product { get; set; } = default!;
@@ -38,6 +43,26 @@ namespace TP1.Pages.Products
             }
 
             return NotFound();
+        }
+
+        public async Task<IActionResult> OnPostAddToCart(int productId)
+        {
+            var product = await _productService.GetProductByIdAsync(productId);
+
+            if (product != null)
+            {
+                _cartService.AddToCart(
+                    product.Id,
+                    product.Title ?? "Unknown Product",
+                    product.Price,
+                    product.MainImagePath,
+                    quantity: 1
+                );
+
+                TempData["CartMessage"] = $"{product.Title} added to cart!";
+            }
+
+            return RedirectToPage(new { id = productId });
         }
     }
 }
