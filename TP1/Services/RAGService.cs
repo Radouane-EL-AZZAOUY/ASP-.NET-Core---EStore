@@ -15,7 +15,9 @@ public class RAGService : IRAGService
         "product", "buy", "purchase", "price", "cost", "laptop", "phone", 
         "computer", "airpod", "headphone", "electronic", "available", 
         "stock", "recommend", "suggest", "show", "find", "search",
-        "cheap", "expensive", "best", "quality", "specification", "spec"
+        "cheap", "expensive", "best", "quality", "specification", "spec",
+        "under", "less", "more", "above", "below", "around", "$", "dollar",
+        "item", "thing", "get", "want", "need", "looking", "earbuds", "bose"
     };
 
     public RAGService(IProductService productService, ILogger<RAGService> logger)
@@ -56,19 +58,37 @@ public class RAGService : IRAGService
         {
             _logger.LogInformation("RAG: Searching for products with query: '{Query}'", query);
             
-            // First try exact search
-            var searchResults = await _productService.SearchProductsAsync(query);
-            var products = searchResults.Take(maxResults).ToList();
+            // Get all products for price-based or general queries
+            var allProducts = await _productService.GetAllProductsAsync();
+            var productsList = allProducts.ToList();
             
-            _logger.LogInformation("RAG: Found {Count} products from search", products.Count);
-
-            // If we don't have enough results, add recommended products
-            if (products.Count < maxResults)
+            _logger.LogInformation("RAG: Found {Count} total products in database", productsList.Count);
+            
+            // Filter by price if mentioned in query
+            var priceFilteredProducts = FilterByPrice(productsList, query);
+            
+            // First try exact search on filtered products
+            var searchResults = await _productService.SearchProductsAsync(query);
+            var products = searchResults.ToList();
+            
+            // Combine search results with price-filtered products
+            if (priceFilteredProducts.Any())
             {
-                var recommended = await _productService.GetRecommendedProductsAsync(maxResults - products.Count);
-                var recommendedList = recommended.Where(r => !products.Any(p => p.Id == r.Id));
-                products.AddRange(recommendedList);
-                _logger.LogInformation("RAG: Added {Count} recommended products", recommendedList.Count());
+                foreach (var product in priceFilteredProducts)
+                {
+                    if (!products.Any(p => p.Id == product.Id))
+                    {
+                        products.Add(product);
+                    }
+                }
+                _logger.LogInformation("RAG: After price filtering: {Count} products", products.Count);
+            }
+            
+            // If still no results, use all products
+            if (!products.Any())
+            {
+                products = productsList;
+                _logger.LogInformation("RAG: Using all products as fallback");
             }
 
             // Score and rank products by relevance
@@ -102,6 +122,37 @@ public class RAGService : IRAGService
         return ProductKeywords.Any(keyword => lowerQuery.Contains(keyword));
     }
 
+    private List<ProductDTO> FilterByPrice(List<ProductDTO> products, string query)
+    {
+        var lowerQuery = query.ToLower();
+        
+        // Extract price from query (handles formats like "$400", "400$", "400", etc.)
+        var priceMatch = Regex.Match(lowerQuery, @"(\$?\s*)?(\d+)\s*(\$)?");
+        if (!priceMatch.Success)
+            return new List<ProductDTO>();
+            
+        if (!decimal.TryParse(priceMatch.Groups[2].Value, out var targetPrice))
+            return new List<ProductDTO>();
+        
+        // Determine the price filter type
+        if (lowerQuery.Contains("less than") || lowerQuery.Contains("under") || lowerQuery.Contains("below"))
+        {
+            return products.Where(p => p.Price < targetPrice).ToList();
+        }
+        else if (lowerQuery.Contains("more than") || lowerQuery.Contains("above") || lowerQuery.Contains("over"))
+        {
+            return products.Where(p => p.Price > targetPrice).ToList();
+        }
+        else if (lowerQuery.Contains("around") || lowerQuery.Contains("about"))
+        {
+            // Within 20% range
+            var range = targetPrice * 0.2m;
+            return products.Where(p => p.Price >= (targetPrice - range) && p.Price <= (targetPrice + range)).ToList();
+        }
+        
+        return new List<ProductDTO>();
+    }
+
     private int CalculateRelevanceScore(ProductDTO product, string query)
     {
         var score = 0;
@@ -123,8 +174,24 @@ public class RAGService : IRAGService
         if (product.InStock)
             score += 3;
 
-        // Price-related queries
-        if (lowerQuery.Contains("cheap") || lowerQuery.Contains("affordable"))
+        // Price-related queries with price extraction
+        var priceMatch = Regex.Match(lowerQuery, @"(\d+)");
+        if (priceMatch.Success && decimal.TryParse(priceMatch.Value, out var targetPrice))
+        {
+            if (lowerQuery.Contains("less than") || lowerQuery.Contains("under") || lowerQuery.Contains("below"))
+            {
+                if (product.Price < targetPrice)
+                    score += 15; // High boost for matching price criteria
+            }
+            else if (lowerQuery.Contains("more than") || lowerQuery.Contains("above") || lowerQuery.Contains("over"))
+            {
+                if (product.Price > targetPrice)
+                    score += 15;
+            }
+        }
+
+        // General price preferences
+        if (lowerQuery.Contains("cheap") || lowerQuery.Contains("affordable") || lowerQuery.Contains("budget"))
         {
             if (product.Price < 500) score += 5;
         }

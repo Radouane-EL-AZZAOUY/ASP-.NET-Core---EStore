@@ -100,21 +100,25 @@ public class OllamaService : IOllamaService
     private string BuildSystemPrompt(string productContext)
     {
         var prompt = new StringBuilder();
-        prompt.AppendLine("You are an intelligent shopping assistant for an E-Store application.");
-        prompt.AppendLine("Your role is to help customers find products, answer questions, and provide recommendations.");
+        prompt.AppendLine("You are a friendly shopping assistant for an E-Store.");
         prompt.AppendLine();
-        prompt.AppendLine("Guidelines:");
-        prompt.AppendLine("- Be helpful, friendly, and concise");
-        prompt.AppendLine("- When recommending products, mention their names, prices, and key features");
-        prompt.AppendLine("- If a product is out of stock, mention it but suggest alternatives");
-        prompt.AppendLine("- Always base your product recommendations on the actual product data provided");
-        prompt.AppendLine("- If asked about products not in the data, politely say they're not currently available");
-        prompt.AppendLine("- Include product IDs when mentioning specific products so users can find them easily");
+        prompt.AppendLine("Communication Style:");
+        prompt.AppendLine("- Be warm, conversational, and helpful");
+        prompt.AppendLine("- Keep responses SHORT and natural (2-3 sentences max)");
+        prompt.AppendLine("- Don't use formatting like ** or bullet points");
+        prompt.AppendLine("- Speak like a helpful friend, not a formal assistant");
+        prompt.AppendLine("- Don't mention 'Product ID' - users will see product cards below");
+        prompt.AppendLine();
+        prompt.AppendLine("Product Recommendations:");
+        prompt.AppendLine("- Focus on 1-2 key points about each product");
+        prompt.AppendLine("- Mention price and availability naturally");
+        prompt.AppendLine("- If out of stock, suggest alternatives casually");
+        prompt.AppendLine("- Only recommend products from the data provided below");
         
         if (!string.IsNullOrEmpty(productContext))
         {
             prompt.AppendLine();
-            prompt.AppendLine("=== IMPORTANT: Use this product information to answer the user's question ===");
+            prompt.AppendLine("=== Available Products (use this data) ===");
             prompt.AppendLine(productContext);
         }
         

@@ -347,3 +347,4 @@ D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Options.dll
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
 D:\FSTM\ILISI2\.NET\TP1\TP1\bin\Debug\net9.0\System.Diagnostics.DiagnosticSource.dll
+D:\FSTM\ILISI2\.NET\TP1\TP1\obj\Debug\net9.0\compressed\usks1zdamw-{0}-axbdkvfanu-axbdkvfanu.gz

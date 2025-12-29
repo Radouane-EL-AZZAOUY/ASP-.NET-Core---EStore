@@ -1,11 +1,14 @@
 ﻿@page
 @model TP1.Pages.Products.IndexModel
+@inject TP1.Services.IOllamaService OllamaService
 
 @{
     ViewData["Title"] = "Products";
+    var isOllamaAvailable = await OllamaService.IsAvailableAsync();
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/chatbot.css" asp-append-version="true" />
     <style>
         .products-toolbar {
             display: none;
@@ -235,5 +238,244 @@ else
             <p>No products available at this time.</p>
         }
     </div>
+}
+
+<!-- Floating Chatbot Widget -->
+<div class="chatbot-widget">
+    <!-- Chat Window -->
+    <div class="chatbot-window" id="chatbotWindow">
+        <div class="chatbot-header">
+            <h5>
+                🤖 Shopping Assistant
+                @if (isOllamaAvailable)
+                {
+                    <span class="chatbot-status" title="Online"></span>
+                }
+            </h5>
+            <button class="chatbot-close-btn" id="closeChatbot">×</button>
+        </div>
+
+        <div class="chatbot-messages" id="chatbotMessages">
+            @if (!isOllamaAvailable)
+            {
+                <div class="chatbot-message assistant">
+                    <div class="message-avatar">🤖 Assistant</div>
+                    <div class="message-bubble">
+                        Sorry, I'm currently offline. Please make sure Ollama is running.
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="welcome-suggestions">
+                    <div style="font-size: 32px; margin-bottom: 12px;">👋</div>
+                    <p style="font-size: 15px; color: #333; margin-bottom: 8px;">Hi! How can I help you today?</p>
+                    <div class="suggestion-chips">
+                        <span class="suggestion-chip" data-message="Show me laptops">💻 Laptops</span>
+                        <span class="suggestion-chip" data-message="What phones do you have?">📱 Phones</span>
+                        <span class="suggestion-chip" data-message="Show cheap products">💰 Budget</span>
+                        <span class="suggestion-chip" data-message="Premium products">⭐ Premium</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="chatbot-input-area">
+            <div class="chatbot-input-group">
+                <input type="text" 
+                       id="chatbotInput" 
+                       placeholder="Ask me anything..."
+                       @(!isOllamaAvailable ? "disabled" : "")>
+                <button class="chatbot-send-btn" 
+                        id="chatbotSendBtn"
+                        @(!isOllamaAvailable ? "disabled" : "")>
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Button -->
+    <button class="chatbot-toggle-btn" id="chatbotToggle">
+        💬
+    </button>
+</div>
+
+@section Scripts {
+    <script>
+        let conversationHistory = '';
+        const chatbotWindow = document.getElementById('chatbotWindow');
+        const chatbotToggle = document.getElementById('chatbotToggle');
+        const closeChatbot = document.getElementById('closeChatbot');
+        const chatbotMessages = document.getElementById('chatbotMessages');
+        const chatbotInput = document.getElementById('chatbotInput');
+        const chatbotSendBtn = document.getElementById('chatbotSendBtn');
+
+        // Toggle chatbot
+        chatbotToggle.addEventListener('click', () => {
+            chatbotWindow.classList.toggle('active');
+            if (chatbotWindow.classList.contains('active')) {
+                chatbotInput.focus();
+            }
+        });
+
+        closeChatbot.addEventListener('click', () => {
+            chatbotWindow.classList.remove('active');
+        });
+
+        // Handle suggestion chips
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const message = this.getAttribute('data-message');
+                chatbotInput.value = message;
+                sendMessage();
+            });
+        });
+
+        // Send message on Enter
+        chatbotInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        chatbotSendBtn.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const message = chatbotInput.value.trim();
+            if (!message) return;
+
+            // Remove welcome message
+            const welcomeMsg = chatbotMessages.querySelector('.welcome-suggestions');
+            if (welcomeMsg) welcomeMsg.remove();
+
+            // Add user message
+            addMessage(message, 'user');
+            chatbotInput.value = '';
+            chatbotInput.disabled = true;
+            chatbotSendBtn.disabled = true;
+
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['RequestVerificationToken'] = token.value;
+                }
+
+                const response = await fetch('/Chat?handler=SendMessage', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        message: message,
+                        conversationHistory: conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove typing indicator
+                document.getElementById(typingId)?.remove();
+
+                if (data.success) {
+                    // Add AI response
+                    addMessage(data.response, 'assistant');
+                    
+                    // Show product cards if available
+                    if (data.relevantProducts && data.relevantProducts.length > 0) {
+                        addProductCards(data.relevantProducts);
+                    }
+                    
+                    // Update conversation history
+                    conversationHistory += `\nUser: ${message}\nAssistant: ${data.response}`;
+                } else {
+                    addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                }
+            } catch (error) {
+                document.getElementById(typingId)?.remove();
+                addMessage('Sorry, I couldn\'t connect. Please try again.', 'assistant');
+                console.error('Chat error:', error);
+            } finally {
+                chatbotInput.disabled = false;
+                chatbotSendBtn.disabled = false;
+                chatbotInput.focus();
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chatbot-message ${sender}`;
+            
+            const avatar = sender === 'user' ? '👤 You' : '🤖 Assistant';
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-bubble">${escapeHtml(text)}</div>
+            `;
+            
+            chatbotMessages.appendChild(messageDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const typingId = 'typing-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = typingId;
+            messageDiv.className = 'chatbot-message assistant';
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖 Assistant</div>
+                <div class="typing-indicator">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            `;
+            
+            chatbotMessages.appendChild(messageDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            
+            return typingId;
+        }
+
+        function addProductCards(products) {
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'product-cards-container';
+            
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'chat-product-card';
+                
+                card.innerHTML = `
+                    ${product.mainImagePath ? `<img src="${product.mainImagePath}" alt="${product.title}">` : ''}
+                    <h6>${escapeHtml(product.title)}</h6>
+                    <div class="product-price">$${product.price.toFixed(2)}</div>
+                    <div class="product-stock ${product.inStock ? 'in-stock' : 'out-stock'}">
+                        ${product.inStock ? '✓ In Stock' : '✗ Out of Stock'}
+                    </div>
+                    <a href="/Products/Details?id=${product.id}" class="btn btn-view-details">
+                        View Details
+                    </a>
+                `;
+                
+                cardsContainer.appendChild(card);
+            });
+            
+            chatbotMessages.appendChild(cardsContainer);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
 }
 
