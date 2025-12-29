@@ -1,0 +1,16 @@
+./TP1/bin
+./TP1/obj
+./TP1/Properties
+./TP1/appsettings.json
+./TP1/appsettings.Development.json
+./TP1/appsettings.Production.json
+./TP1/appsettings.Testing.json
+./TP1/appsettings.Testing.json
+./TP1.Tests/bin
+./TP1.Tests/obj
+./TP1.Tests/Properties
+./TP1.Tests/appsettings.json
+./TP1.Tests/appsettings.Development.json
+./TP1.Tests/appsettings.Production.json
+./TP1.Tests/appsettings.Testing.json
+./TP1.Tests/appsettings.Testing.json
