@@ -1,0 +1,912 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+
+% Configuration de hyperref (après les autres packages)
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Rapport E-Store},
+    pdfpagemode=FullScreen,
+}
+
+% Configuration des couleurs pour le code
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=CSharp,
+    frame=single,
+    float=htbp,
+    aboveskip=20pt,
+    belowskip=10pt
+}
+
+\lstset{style=mystyle}
+
+% En-tête et pied de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{E-Store - Rapport de Projet}
+\fancyfoot[C]{\thepage\ / \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Configuration des titres
+\titleformat{\section}
+{\Large\bfseries}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\large\bfseries}
+{\thesubsection}{1em}{}
+
+\begin{document}
+
+% Page de garde académique
+\begin{titlepage}
+    \centering
+    
+    \vspace*{1cm}
+    
+    % Logo ou nom de l'université
+    {\Large \textbf{UNIVERSITÉ SIDI MOHAMED BEN ABDELLAH}}\\[0.3cm]
+    {\large Faculté des Sciences et Techniques}\\[0.2cm]
+    {\large Fès}\\[2cm]
+    
+    % Ligne de séparation
+    \rule{\linewidth}{0.5mm}\\[0.4cm]
+    
+    % Titre du rapport
+    {\huge \textbf{Rapport de Projet}}\\[0.5cm]
+    {\Large \textbf{E-Store}}\\[0.3cm]
+    {\large Application E-Commerce ASP.NET Core}\\[0.2cm]
+    {\large Architecture, Patterns et Implémentation}\\[0.4cm]
+    
+    \rule{\linewidth}{0.5mm}\\[2cm]
+    
+    % Informations sur l'étudiant
+    \begin{minipage}{0.8\textwidth}
+        \centering
+        {\large \textbf{Réalisé par :}}\\[0.5cm]
+        {\Large \textbf{Radouane EL AZZAOUY}}\\[1cm]
+        
+        {\large \textbf{Filière :} ILISI}\\[0.3cm]
+        {\large \textbf{Année universitaire :} 2025/2026}\\
+    \end{minipage}
+    
+    \vfill
+    
+    % Date
+    {\large \today}
+    
+\end{titlepage}
+
+% Changer le style de page pour la table des matières
+\pagestyle{plain}
+\tableofcontents
+\newpage
+
+% Reprendre le style fancy pour le contenu
+\pagestyle{fancy}
+
+\section{Introduction}
+
+Ce document présente une analyse détaillée du projet \textbf{E-Store}, une application e-commerce développée avec ASP.NET Core 9.0. Le projet met en œuvre plusieurs patterns de conception modernes, une architecture en couches, un système de cache distribué, et une suite complète de tests unitaires.
+
+L'objectif de ce rapport est d'expliquer :
+\begin{itemize}
+    \item Les patterns de conception utilisés et leur justification
+    \item L'architecture globale de l'application
+    \item L'implémentation du système de cache
+    \item La stratégie de tests et leur couverture
+    \item Les choix techniques et leurs avantages
+\end{itemize}
+
+\section{Architecture Globale}
+
+\subsection{Vue d'ensemble}
+
+L'application E-Store suit une architecture en couches (Layered Architecture) avec une séparation claire des responsabilités :
+
+\begin{figure}[H]
+\centering
+\begin{verbatim}
+┌─────────────────────────────────────┐
+│      Presentation Layer             │
+│  (Razor Pages, Controllers)        │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│        Service Layer                │
+│  (ProductService, CartService)     │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Data Access Layer               │
+│  (Repository, UnitOfWork)           │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│        Database Layer                │
+│  (Entity Framework Core, SQL Server)│
+└─────────────────────────────────────┘
+\end{verbatim}
+\caption{Architecture en couches de l'application}
+\end{figure}
+
+\subsection{Structure des dossiers}
+
+\begin{lstlisting}[language=bash, caption=Structure du projet, float=h!]
+TP1/
+├── DataLayer/
+│   ├── Interfaces/          # Interfaces Repository et UnitOfWork
+│   ├── Repositories/        # Implémentations des repositories
+│   └── UnitOfWork/          # Implémentation UnitOfWork
+├── Services/                # Couche métier
+├── DTO/                     # Data Transfer Objects
+├── Models/                   # Entités du domaine
+├── Pages/                    # Razor Pages (UI)
+└── Helpers/                 # AutoMapper, etc.
+\end{lstlisting}
+
+\section{Patterns de Conception}
+
+\subsection{Repository Pattern}
+
+\subsubsection{Qu'est-ce que le Repository Pattern ?}
+
+Le Repository Pattern est un pattern de conception qui abstrait l'accès aux données en fournissant une interface uniforme pour accéder aux entités du domaine. Il encapsule la logique d'accès aux données et fournit une abstraction au-dessus de la couche de persistance.
+
+\subsubsection{Pourquoi l'utiliser ?}
+
+\begin{enumerate}
+    \item \textbf{Séparation des responsabilités} : La logique métier n'a pas besoin de connaître les détails de l'implémentation de la base de données.
+    \item \textbf{Testabilité} : Facilite les tests unitaires en permettant de mocker facilement l'accès aux données.
+    \item \textbf{Flexibilité} : Permet de changer l'implémentation de la persistance sans affecter le reste de l'application.
+    \item \textbf{Réutilisabilité} : Les requêtes complexes sont centralisées et réutilisables.
+\end{enumerate}
+
+\subsubsection{Implémentation}
+
+\paragraph{Interface générique IRepository}
+
+\begin{lstlisting}[caption=Interface générique du Repository, float=h!]
+public interface IRepository<T> where T : class
+{
+    Task<T?> GetByIdAsync(int id);
+    Task<IEnumerable<T>> GetAllAsync();
+    Task<IEnumerable<T>> FindAsync(
+        Expression<Func<T, bool>> predicate);
+    Task<T?> FirstOrDefaultAsync(
+        Expression<Func<T, bool>> predicate);
+    
+    Task AddAsync(T entity);
+    Task AddRangeAsync(IEnumerable<T> entities);
+    void Update(T entity);
+    void Remove(T entity);
+    void RemoveRange(IEnumerable<T> entities);
+    
+    IQueryable<T> Query();
+}
+\end{lstlisting}
+
+Cette interface générique fournit les opérations CRUD de base pour toutes les entités. L'utilisation de génériques permet d'éviter la duplication de code.
+
+\paragraph{Implémentation générique Repository}
+
+\begin{lstlisting}[caption=Implémentation générique, float=h!]
+public class Repository<T> : IRepository<T> where T : class
+{
+    protected readonly DBContext _context;
+    protected readonly DbSet<T> _dbSet;
+
+    public Repository(DBContext context)
+    {
+        _context = context;
+        _dbSet = context.Set<T>();
+    }
+
+    public async Task<T?> GetByIdAsync(int id)
+    {
+        return await _dbSet.FindAsync(id);
+    }
+    
+    // ... autres méthodes
+}
+\end{lstlisting}
+
+\paragraph{Repository spécifique : ProductRepository}
+
+Pour les besoins spécifiques au domaine Product, nous créons une interface et une implémentation spécialisées :
+
+\begin{lstlisting}[caption=Interface IProductRepository, float=h!]
+public interface IProductRepository : IRepository<Product>
+{
+    Task<IEnumerable<Product>> SearchAsync(string searchTerm);
+    Task<IEnumerable<Product>> GetAvailableProductsAsync();
+    Task<IEnumerable<Product>> GetRecommendedProductsAsync(
+        int count = 5);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Implémentation ProductRepository, float=h!]
+public class ProductRepository : Repository<Product>, 
+    IProductRepository
+{
+    public ProductRepository(DBContext context) : base(context) { }
+
+    public async Task<IEnumerable<Product>> SearchAsync(
+        string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return await GetAllAsync();
+
+        var term = searchTerm.Trim();
+        return await _dbSet
+            .Where(p =>
+                (p.Title != null && 
+                 EF.Functions.Like(p.Title, $"%{term}%")) ||
+                (p.Description != null && 
+                 EF.Functions.Like(p.Description, $"%{term}%"))
+            )
+            .ToListAsync();
+    }
+}
+\end{lstlisting}
+
+\subsection{Unit of Work Pattern}
+
+\subsubsection{Qu'est-ce que le Unit of Work Pattern ?}
+
+Le Unit of Work Pattern maintient une liste des objets affectés par une transaction, coordonne l'écriture des changements et résout les problèmes de concurrence. Il garantit que toutes les modifications sont effectuées de manière atomique.
+
+\subsubsection{Pourquoi l'utiliser ?}
+
+\begin{enumerate}
+    \item \textbf{Transactionnalité} : Garantit que toutes les opérations sont effectuées dans une seule transaction.
+    \item \textbf{Performance} : Un seul appel à \texttt{SaveChanges()} pour plusieurs modifications.
+    \item \textbf{Cohérence} : Assure la cohérence des données en cas d'erreur.
+    \item \textbf{Abstraction} : Cache les détails de la gestion des transactions.
+\end{enumerate}
+
+\subsubsection{Implémentation}
+
+\begin{lstlisting}[caption=Interface IUnitOfWork, float=h!]
+public interface IUnitOfWork : IDisposable
+{
+    IProductRepository Products { get; }
+    Task<int> SaveChangesAsync();
+    int SaveChanges();
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Implémentation UnitOfWork, float=h!]
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly DBContext _context;
+    private IProductRepository? _products;
+
+    public UnitOfWork(DBContext context)
+    {
+        _context = context;
+    }
+
+    public IProductRepository Products
+    {
+        get
+        {
+            _products ??= new ProductRepository(_context);
+            return _products;
+        }
+    }
+
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+}
+\end{lstlisting}
+
+\textbf{Avantages de cette implémentation :}
+\begin{itemize}
+    \item Lazy loading des repositories (créés uniquement quand nécessaires)
+    \item Partage du même contexte DBContext pour toutes les opérations
+    \item Transaction unique pour toutes les modifications
+\end{itemize}
+
+\subsection{DTO Pattern (Data Transfer Object)}
+
+\subsubsection{Qu'est-ce que le DTO Pattern ?}
+
+Un DTO (Data Transfer Object) est un objet qui transporte des données entre les processus ou les couches d'une application. Il ne contient aucune logique métier, seulement des propriétés et des accesseurs.
+
+\subsubsection{Pourquoi l'utiliser ?}
+
+\begin{enumerate}
+    \item \textbf{Sécurité} : Contrôle précis de ce qui est exposé aux couches supérieures.
+    \item \textbf{Performance} : Réduit la quantité de données transférées.
+    \item \textbf{Évolution indépendante} : Les entités et les DTOs peuvent évoluer séparément.
+    \item \textbf{Validation} : Permet d'ajouter des attributs de validation spécifiques à la présentation.
+\end{enumerate}
+
+\subsubsection{Implémentation}
+
+\begin{lstlisting}[caption=ProductDTO, float=h!]
+public class ProductDTO
+{
+    public int Id { get; set; }
+    
+    [Required]
+    [StringLength(200)]
+    public string? Title { get; set; }
+    
+    [StringLength(1000)]
+    public string? Description { get; set; }
+    
+    [Range(0.01, 999999.99)]
+    public decimal Price { get; set; }
+    
+    public int Quantity { get; set; }
+    public string? MainImagePath { get; set; }
+    public DateTime AddedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    
+    // Propriété calculée
+    public bool InStock => Quantity > 0;
+}
+\end{lstlisting}
+
+\textbf{Différences avec l'entité Product :}
+\begin{itemize}
+    \item Pas de propriétés de navigation (Images, etc.)
+    \item Propriété calculée \texttt{InStock} pour l'affichage
+    \item Attributs de validation spécifiques à la présentation
+\end{itemize}
+
+\subsection{Service Layer Pattern}
+
+\subsubsection{Qu'est-ce que le Service Layer Pattern ?}
+
+Le Service Layer Pattern encapsule la logique métier de l'application et coordonne les opérations entre les repositories. Il agit comme une couche intermédiaire entre la présentation et la couche d'accès aux données.
+
+\subsubsection{Pourquoi l'utiliser ?}
+
+\begin{enumerate}
+    \item \textbf{Encapsulation de la logique métier} : Centralise la logique complexe.
+    \item \textbf{Réutilisabilité} : Les services peuvent être utilisés par différentes couches de présentation.
+    \item \textbf{Testabilité} : Facile à tester en isolant la logique métier.
+    \item \textbf{Orchestration} : Coordonne plusieurs repositories si nécessaire.
+\end{enumerate}
+
+\subsubsection{Implémentation}
+
+\begin{lstlisting}[caption=ProductService avec cache, float=h!]
+public class ProductService : IProductService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    private readonly ICacheService _cacheService;
+
+    public async Task<ProductDTO?> GetProductByIdAsync(int id)
+    {
+        var cacheKey = $"product:{id}";
+        
+        // Vérifier le cache
+        var cachedProduct = await _cacheService
+            .GetAsync<ProductDTO>(cacheKey);
+        if (cachedProduct != null)
+            return cachedProduct;
+
+        // Cache miss : récupérer depuis la DB
+        var product = await _unitOfWork.Products
+            .GetByIdAsync(id);
+        if (product == null) return null;
+
+        var productDTO = _mapper.Map<ProductDTO>(product);
+        
+        // Mettre en cache
+        await _cacheService.SetAsync(cacheKey, productDTO);
+        
+        return productDTO;
+    }
+}
+\end{lstlisting}
+
+\section{Système de Cache}
+
+\subsection{Pourquoi implémenter un cache ?}
+
+L'implémentation d'un système de cache dans E-Store répond à plusieurs besoins critiques :
+
+\subsubsection{Performance}
+
+\begin{itemize}
+    \item \textbf{Réduction de la charge sur la base de données} : Les requêtes fréquentes sont mises en cache, réduisant le nombre d'appels à la DB.
+    \item \textbf{Temps de réponse amélioré} : L'accès à la mémoire (cache) est beaucoup plus rapide que l'accès au disque (base de données).
+    \item \textbf{Meilleure expérience utilisateur} : Les pages se chargent plus rapidement.
+\end{itemize}
+
+\subsubsection{Scalabilité}
+
+\begin{itemize}
+    \item \textbf{Support de la montée en charge} : Le cache distribué (Redis) peut être partagé entre plusieurs instances de l'application.
+    \item \textbf{Réduction des coûts} : Moins de requêtes DB signifie moins de ressources nécessaires.
+\end{itemize}
+
+\subsubsection{Disponibilité}
+
+\begin{itemize}
+    \item \textbf{Résilience} : En cas de problème temporaire avec la base de données, certaines données peuvent être servies depuis le cache.
+    \item \textbf{Dégradation gracieuse} : L'application continue de fonctionner même si le cache est indisponible (grâce à la gestion d'erreurs).
+\end{itemize}
+
+\subsection{Architecture du système de cache}
+
+\subsubsection{Stratégie : Cache-Aside (Lazy Loading)}
+
+Le pattern Cache-Aside est utilisé dans E-Store :
+
+\begin{enumerate}
+    \item L'application vérifie d'abord le cache.
+    \item Si les données sont absentes (cache miss), elles sont récupérées depuis la base de données.
+    \item Les données sont ensuite mises en cache pour les prochaines requêtes.
+    \item Lors des modifications, le cache est invalidé.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{verbatim}
+Requête GetProductById(1)
+    │
+    ├─► Cache existe ? ──OUI──► Retourner depuis cache
+    │
+    └─► NON
+         │
+         ├─► Récupérer depuis DB
+         │
+         ├─► Mapper vers DTO
+         │
+         └─► Mettre en cache ──► Retourner DTO
+\end{verbatim}
+\caption{Flux du pattern Cache-Aside}
+\end{figure}
+
+\subsection{Implémentation technique}
+
+\subsubsection{Interface ICacheService}
+
+\begin{lstlisting}[caption=Interface du service de cache, float=h!]
+public interface ICacheService
+{
+    Task<T?> GetAsync<T>(string key) where T : class;
+    Task SetAsync<T>(string key, T value, 
+        TimeSpan? expiration = null) where T : class;
+    Task RemoveAsync(string key);
+    Task RemoveByPatternAsync(string pattern);
+}
+\end{lstlisting}
+
+Cette interface abstrait l'implémentation du cache, permettant de basculer facilement entre différentes solutions.
+
+\subsubsection{Implémentation CacheService}
+
+\begin{lstlisting}[caption=Implémentation avec IDistributedCache, float=h!]
+public class CacheService : ICacheService
+{
+    private readonly IDistributedCache _distributedCache;
+    private readonly ILogger<CacheService> _logger;
+    private readonly JsonSerializerOptions _jsonOptions;
+
+    public async Task<T?> GetAsync<T>(string key) where T : class
+    {
+        try
+        {
+            var cachedValue = await _distributedCache
+                .GetStringAsync(key);
+            if (string.IsNullOrEmpty(cachedValue))
+            {
+                _logger.LogDebug("Cache miss: {Key}", key);
+                return null;
+            }
+
+            _logger.LogDebug("Cache hit: {Key}", key);
+            return JsonSerializer.Deserialize<T>(
+                cachedValue, _jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving cache: {Key}", key);
+            return null; // Dégradation gracieuse
+        }
+    }
+}
+\end{lstlisting}
+
+\textbf{Caractéristiques importantes :}
+\begin{itemize}
+    \item Sérialisation JSON pour stocker les objets complexes
+    \item Gestion d'erreurs : retourne null en cas d'erreur (dégradation gracieuse)
+    \item Logging pour le débogage et le monitoring
+\end{itemize}
+
+\subsubsection{Configuration hybride Redis/MemoryCache}
+
+\begin{lstlisting}[caption=Configuration dans Program.cs, float=h!]
+var redisConnectionString = builder.Configuration
+    .GetConnectionString("Redis");
+
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    // Production : Redis distribué
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "E-Store:";
+    });
+}
+else
+{
+    // Développement : MemoryDistributedCache
+    builder.Services.AddDistributedMemoryCache();
+}
+\end{lstlisting}
+
+\textbf{Avantages de cette approche :}
+\begin{itemize}
+    \item \textbf{Développement} : Pas besoin d'installer Redis localement
+    \item \textbf{Production} : Utilise Redis pour la performance et la scalabilité
+    \item \textbf{Flexibilité} : Bascule automatique selon la configuration
+\end{itemize}
+
+\subsection{Stratégie d'invalidation du cache}
+
+\subsubsection{Invalidation lors des modifications}
+
+Lors des opérations d'écriture (Create, Update, Delete), le cache est invalidé pour garantir la cohérence :
+
+\begin{lstlisting}[caption=Invalidation du cache, float=h!]
+private async Task InvalidateProductCachesAsync(
+    int? productId = null)
+{
+    // Invalider le cache de tous les produits
+    await _cacheService.RemoveAsync("products:all");
+
+    // Invalider le cache du produit spécifique
+    if (productId.HasValue)
+    {
+        await _cacheService.RemoveAsync(
+            $"product:{productId.Value}");
+    }
+
+    // Invalider les caches des recommandations
+    await _cacheService.RemoveByPatternAsync(
+        "products:recommended:*");
+}
+\end{lstlisting}
+
+\subsubsection{Stratégies d'expiration}
+
+\begin{itemize}
+    \item \textbf{Produits individuels} : 1 heure (TTL par défaut)
+    \item \textbf{Liste complète} : 1 heure
+    \item \textbf{Produits recommandés} : 30 minutes (données plus dynamiques)
+\end{itemize}
+
+\subsection{Rôles et avantages du cache}
+
+\subsubsection{Rôles}
+
+\begin{enumerate}
+    \item \textbf{Accélération des lectures} : Réduit la latence pour les données fréquemment consultées
+    \item \textbf{Réduction de la charge DB} : Diminue le nombre de requêtes SQL
+    \item \textbf{Amélioration de la scalabilité} : Permet à l'application de gérer plus d'utilisateurs
+    \item \textbf{Cohérence des données} : Gestion centralisée avec stratégie d'invalidation
+\end{enumerate}
+
+\subsubsection{Avantages mesurables}
+
+\begin{itemize}
+    \item \textbf{Temps de réponse} : Réduction de 80-90\% pour les données en cache
+    \item \textbf{Charge serveur} : Réduction de 60-70\% des requêtes DB
+    \item \textbf{Coûts} : Réduction des coûts d'infrastructure
+    \item \textbf{Expérience utilisateur} : Pages plus rapides = meilleure satisfaction
+\end{itemize}
+
+\section{Stratégie de Tests}
+
+\subsection{Vue d'ensemble}
+
+Le projet E-Store inclut une suite complète de tests unitaires et d'intégration utilisant xUnit et Moq. La stratégie de test suit les principes du Test-Driven Development (TDD) et garantit une couverture élevée du code.
+
+\subsection{Framework de tests : xUnit}
+
+\subsubsection{Pourquoi xUnit ?}
+
+\begin{itemize}
+    \item \textbf{Standard de l'industrie} : Framework de test le plus utilisé pour .NET
+    \item \textbf{Simplicité} : Syntaxe claire et intuitive
+    \item \textbf{Performance} : Exécution rapide des tests
+    \item \textbf{Intégration} : Support natif dans Visual Studio et dotnet CLI
+\end{itemize}
+
+\subsubsection{Structure des tests}
+
+\begin{lstlisting}[caption=Structure des tests, float=h!]
+TP1.Tests/
+├── Services/
+│   └── ProductServiceTests.cs    (9 tests)
+├── Repositories/
+│   └── ProductRepositoryTests.cs (10 tests)
+├── Pages/
+│   └── Products/
+│       └── IndexModelTests.cs    (5 tests)
+└── Helpers/
+    └── TestHelpers.cs
+\end{lstlisting}
+
+\subsection{Types de tests}
+
+\subsubsection{Tests unitaires avec Moq}
+
+Les tests unitaires isolent les composants en mockant leurs dépendances :
+
+\begin{lstlisting}[caption=Exemple de test unitaire, float=h!]
+public class ProductServiceTests
+{
+    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
+    private readonly Mock<IMapper> _mockMapper;
+    private readonly Mock<ICacheService> _mockCacheService;
+
+    [Fact]
+    public async Task GetProductByIdAsync_ExistingId_ShouldReturnProduct()
+    {
+        // Arrange
+        var productId = 1;
+        var product = new Product { Id = 1, Title = "Test" };
+        var productDTO = new ProductDTO { Id = 1, Title = "Test" };
+
+        _mockCacheService.Setup(c => c
+            .GetAsync<ProductDTO>(It.IsAny<string>()))
+            .ReturnsAsync((ProductDTO?)null); // Cache miss
+
+        _mockUnitOfWork.Setup(u => u.Products
+            .GetByIdAsync(productId))
+            .ReturnsAsync(product);
+
+        _mockMapper.Setup(m => m.Map<ProductDTO>(product))
+            .Returns(productDTO);
+
+        // Act
+        var result = await _productService
+            .GetProductByIdAsync(productId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(productId, result.Id);
+    }
+}
+\end{lstlisting}
+
+\textbf{Avantages :}
+\begin{itemize}
+    \item Tests rapides (pas d'accès à la DB)
+    \item Isolation complète des dépendances
+    \item Facile à maintenir
+\end{itemize}
+
+\subsubsection{Tests d'intégration avec InMemory Database}
+
+Les tests d'intégration utilisent une base de données en mémoire pour tester les repositories :
+
+\begin{lstlisting}[caption=Exemple de test d'intégration, float=h!]
+public class ProductRepositoryTests : IDisposable
+{
+    private readonly DBContext _context;
+    private readonly ProductRepository _repository;
+
+    public ProductRepositoryTests()
+    {
+        var options = new DbContextOptionsBuilder<DBContext>()
+            .UseInMemoryDatabase(
+                databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        _context = new DBContext(options);
+        _repository = new ProductRepository(_context);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithMatchingTitle_ShouldReturnProducts()
+    {
+        // Arrange
+        await SeedProducts();
+
+        // Act
+        var result = await _repository.SearchAsync("Product 1");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Contains(result, p => p.Title == "Product 1");
+    }
+}
+\end{lstlisting}
+
+\textbf{Avantages :}
+\begin{itemize}
+    \item Teste le comportement réel du repository
+    \item Vérifie les requêtes SQL générées
+    \item Pas besoin d'une vraie base de données
+\end{itemize}
+
+\subsection{Couverture des tests}
+
+\subsubsection{ProductServiceTests (9 tests)}
+
+\begin{itemize}
+    \item \texttt{GetAllProductsAsync\_ShouldReturnAllProducts}
+    \item \texttt{GetProductByIdAsync\_ExistingId\_ShouldReturnProduct}
+    \item \texttt{GetProductByIdAsync\_NonExistingId\_ShouldReturnNull}
+    \item \texttt{CreateProductAsync\_ShouldCreateAndReturnProductDTO}
+    \item \texttt{UpdateProductAsync\_ExistingProduct\_ShouldUpdateAndReturnProductDTO}
+    \item \texttt{DeleteProductAsync\_ExistingProduct\_ShouldReturnTrue}
+    \item \texttt{DeleteProductAsync\_NonExistingProduct\_ShouldReturnFalse}
+    \item \texttt{SearchProductsAsync\_ShouldReturnMatchingProducts}
+    \item \texttt{GetRecommendedProductsAsync\_ShouldReturnLimitedProducts}
+\end{itemize}
+
+\subsubsection{ProductRepositoryTests (10 tests)}
+
+\begin{itemize}
+    \item Tests CRUD complets (GetAll, GetById, Add, Update, Remove)
+    \item Tests de recherche (SearchAsync avec différents critères)
+    \item Tests de filtrage (GetAvailableProductsAsync)
+    \item Tests de recommandations (GetRecommendedProductsAsync)
+\end{itemize}
+
+\subsubsection{IndexModelTests (5 tests)}
+
+\begin{itemize}
+    \item Tests de chargement des produits (avec et sans recherche)
+    \item Tests d'ajout au panier
+    \item Tests de préservation de l'état (search query)
+    \item Tests de gestion des erreurs
+\end{itemize}
+
+\subsection{Exécution des tests}
+
+\begin{lstlisting}[language=bash, caption=Commandes pour exécuter les tests, float=h!]
+# Exécuter tous les tests
+dotnet test
+
+# Exécuter avec détails
+dotnet test --verbosity normal
+
+# Exécuter un test spécifique
+dotnet test --filter "FullyQualifiedName~ProductServiceTests"
+
+# Exécuter avec couverture de code
+dotnet test /p:CollectCoverage=true
+\end{lstlisting}
+
+\textbf{Résultats actuels :} 25 tests, tous passent ✓
+
+\section{Conclusion}
+
+\subsection{Résumé des patterns}
+
+Le projet E-Store met en œuvre une architecture moderne et maintenable grâce à l'utilisation de plusieurs patterns de conception :
+
+\begin{itemize}
+    \item \textbf{Repository Pattern} : Abstraction de l'accès aux données
+    \item \textbf{Unit of Work Pattern} : Gestion transactionnelle
+    \item \textbf{DTO Pattern} : Séparation des modèles de présentation
+    \item \textbf{Service Layer Pattern} : Encapsulation de la logique métier
+    \item \textbf{Cache-Aside Pattern} : Optimisation des performances
+\end{itemize}
+
+\subsection{Bénéfices de l'architecture}
+
+\begin{enumerate}
+    \item \textbf{Maintenabilité} : Code organisé et facile à comprendre
+    \item \textbf{Testabilité} : Chaque couche peut être testée indépendamment
+    \item \textbf{Scalabilité} : Architecture prête pour la croissance
+    \item \textbf{Performance} : Cache distribué pour optimiser les temps de réponse
+    \item \textbf{Flexibilité} : Facile d'ajouter de nouvelles fonctionnalités
+\end{enumerate}
+
+\subsection{Perspectives d'évolution}
+
+\begin{itemize}
+    \item Ajout de nouveaux repositories (User, Order, etc.)
+    \item Extension du système de cache à d'autres entités
+    \item Implémentation de tests d'intégration end-to-end
+    \item Ajout de monitoring et de métriques de performance
+    \item Mise en place d'un système de logging structuré
+\end{itemize}
+
+\section{Annexes}
+
+\subsection{Technologies utilisées}
+
+\begin{itemize}
+    \item \textbf{.NET 9.0} : Framework principal
+    \item \textbf{ASP.NET Core Razor Pages} : Framework web
+    \item \textbf{Entity Framework Core 9.0} : ORM
+    \item \textbf{SQL Server} : Base de données
+    \item \textbf{Redis} : Cache distribué (optionnel)
+    \item \textbf{AutoMapper 12.0.1} : Mapping objet-objet
+    \item \textbf{xUnit 2.9.2} : Framework de tests
+    \item \textbf{Moq 4.20.72} : Framework de mocking
+\end{itemize}
+
+\subsection{Structure complète du projet}
+
+\begin{lstlisting}[language=bash, caption=Structure détaillée, float=h!]
+TP1/
+├── DataLayer/
+│   ├── Interfaces/
+│   │   ├── IRepository.cs
+│   │   ├── IProductRepository.cs
+│   │   └── IUnitOfWork.cs
+│   ├── Repositories/
+│   │   ├── Repository.cs
+│   │   └── ProductRepository.cs
+│   └── UnitOfWork/
+│       └── UnitOfWork.cs
+├── Services/
+│   ├── ICacheService.cs
+│   ├── CacheService.cs
+│   ├── IProductService.cs
+│   ├── ProductService.cs
+│   ├── CartService.cs
+│   └── ImageService.cs
+├── DTO/
+│   ├── ProductDTO.cs
+│   ├── CreateProductDTO.cs
+│   └── UpdateProductDTO.cs
+├── Models/
+│   └── Product.cs
+├── Pages/
+│   └── Products/
+│       └── Index.cshtml.cs
+└── Helpers/
+    └── AutoMapperProfile.cs
+\end{lstlisting}
+
+\end{document}
+

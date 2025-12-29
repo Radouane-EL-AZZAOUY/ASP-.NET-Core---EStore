@@ -1,0 +1,239 @@
+﻿@page
+@model TP1.Pages.Products.IndexModel
+
+@{
+    ViewData["Title"] = "Products";
+}
+
+@section Styles {
+    <style>
+        .products-toolbar {
+            display: none;
+        }
+
+        .products-summary {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .products-summary-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #0F1111;
+        }
+
+        .products-summary-meta {
+            font-size: 13px;
+            color: #565959;
+        }
+
+        .products-filters-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .products-filters-form .form-select,
+        .products-filters-form .form-check-input {
+            font-size: 13px;
+        }
+
+        .products-filters-form .filter-label {
+            font-size: 13px;
+            color: #0F1111;
+            margin-right: 4px;
+        }
+
+        .products-filters-form .form-check-label {
+            font-size: 13px;
+            color: #0F1111;
+        }
+
+        .products-filters-form .btn-clear-filters {
+            font-size: 13px;
+        }
+
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
+            background: white;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        .product-image-container {
+            width: 100%;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .product-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover .product-image {
+            transform: scale(1.03);
+        }
+
+        .product-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #0F1111;
+            margin-bottom: 8px;
+            min-height: 48px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: #B12704;
+            margin-bottom: 8px;
+        }
+
+        .product-description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 15px;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-release-date {
+            font-size: 12px;
+            color: #767676;
+            margin-bottom: 10px;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            background: #ffd814;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #0F1111;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .add-to-cart-btn:hover {
+            background: #f7ca00;
+        }
+
+        .add-to-cart-btn:active {
+            background: #e6b800;
+            transform: scale(0.98);
+        }
+    </style>
+}
+
+@* Products toolbar removed as requested *@
+
+@if (TempData["CartMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["CartMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.Product != null && Model.Product.Any())
+{
+    <div class="row">
+        @foreach (var item in Model.Product)
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="product-card">
+                    <div class="product-image-container">
+                        @if (!string.IsNullOrEmpty(item.MainImagePath))
+                        {
+                            <img src="@item.MainImagePath" alt="@item.Title" class="product-image" />
+                        }
+                        else
+                        {
+                            <div class="text-muted">No Image</div>
+                        }
+                    </div>
+                    
+                    <div class="product-title" style="cursor: default;">
+                        @Html.DisplayFor(modelItem => item.Title)
+                    </div>
+                    
+                    <div class="product-price">
+                        $@Html.DisplayFor(modelItem => item.Price)
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(item.Description))
+                    {
+                        <div class="product-description">
+                            @Html.DisplayFor(modelItem => item.Description)
+                        </div>
+                    }
+                    
+                    <div class="product-release-date">
+                        @if (item.InStock)
+                        {
+                            <span class="text-success">In Stock</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">Out of Stock</span>
+                        }
+                    </div>
+                    
+                    <form method="post" asp-page-handler="AddToCart" style="display: inline;">
+                        <input type="hidden" name="productId" value="@item.Id" />
+                        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                        {
+                            <input type="hidden" name="search" value="@Model.SearchQuery" />
+                        }
+                        <button type="submit" class="add-to-cart-btn">
+                            Add to Cart
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            <p>No products found matching "@Model.SearchQuery". <a asp-page="/Products/Index">View all products</a></p>
+        }
+        else
+        {
+            <p>No products available at this time.</p>
+        }
+    </div>
+}
+

@@ -1,0 +1,73 @@
+<header class="amazon-header">
+        <!-- Top bar -->
+        <div class="header-top">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-md-2">
+                        <a class="logo" asp-area="" asp-page="/Index">
+                            <span class="logo-text">E-Store</span>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <form class="search-form" method="get" asp-page="/Products/Index">
+                            <div class="input-group">
+                                <input type="text" class="form-control search-input" name="search" placeholder="Search products..." value="@Context.Request.Query["search"]" />
+                                <button class="btn search-btn" type="submit">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <path d="m21 21-4.35-4.35"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="header-actions">
+                            @inject TP1.Services.CartService CartService
+                            @{
+                                // Number of distinct products in the cart
+                                var cartCount = CartService.GetCart().Count;
+                                // Simple example promotions count (could be made dynamic later)
+                                var promoCount = 3;
+                            }
+
+                            <a asp-page="/Promotions/Index" class="cart-link">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 3h18v4H3z"></path>
+                                    <path d="M5 9h14v4H5z"></path>
+                                    <path d="M7 15h10v4H7z"></path>
+                                </svg>
+                                <span class="cart-text">Promotions</span>
+                                @if (promoCount > 0)
+                                {
+                                    <span class="cart-count">@promoCount</span>
+                                }
+                            </a>
+
+                            <a asp-page="/Cart/Index" class="cart-link">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="9" cy="21" r="1"></circle>
+                                    <circle cx="20" cy="21" r="1"></circle>
+                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                </svg>
+                                <span class="cart-text">Cart</span>
+                                @if (cartCount > 0)
+                                {
+                                    <span class="cart-count">@cartCount</span>
+                                }
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Navigation bar -->
+        <nav class="header-nav">
+            <div class="container-fluid">
+                <ul class="nav-links">
+                    <li><a asp-area="" asp-page="/Index">All</a></li>
+                    <li><a href="#">Today's Deals</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
